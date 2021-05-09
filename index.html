@@ -1,0 +1,100 @@
+<html>
+	<head>
+		<script type="module">
+			import "./bip39.browser.js";
+		</script>
+	</head>
+	<body>
+		<div>
+			<label>Count</label>
+			<input id="count" type="number" value="1000">
+			<button id="submit" onclick="onClick()">Generate</button>
+		</div>
+		<hr>
+	</body>
+	<script>
+		function getRandomInt(min, max) {
+			min = Math.ceil(min);
+			max = Math.floor(max);
+			return Math.floor(Math.random() * (max - min)) + min;
+		}
+	
+		function json2csv(items) {
+			const replacer = (key, value) => value === null ? '' : value;
+			const header = Object.keys(items[0]);
+			const csv = [
+			  header.join(','), // header row first
+			  ...items.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','))
+			].join('\r\n');
+			return csv;
+		}
+		
+		function OBJtoXML(obj) {
+		  var xml = '';
+		  for (var prop in obj) {
+			xml += obj[prop] instanceof Array ? '' : "<" + prop + ">";
+			if (obj[prop] instanceof Array) {
+			  for (var array in obj[prop]) {
+				xml += "<" + prop + ">";
+				xml += OBJtoXML(new Object(obj[prop][array]));
+				xml += "</" + prop + ">";
+			  }
+			} else if (typeof obj[prop] == "object") {
+			  xml += OBJtoXML(new Object(obj[prop]));
+			} else {
+			  xml += obj[prop];
+			}
+			xml += obj[prop] instanceof Array ? '' : "</" + prop + ">";
+		  }
+		  var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+		  return xml;
+		}
+	
+		function download(text, format) {
+			var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+						
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.style.display = 'none';
+			a.href = url;
+			// the filename you want
+			a.download = `generated.${format}`;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+		}
+	
+		function onClick() {
+			var el = document.getElementById('count');
+			if (el && el.value) {
+				var count = parseInt(el.value);
+				var passwords = [];
+				var mnemonics = [];
+				
+				var result = [];
+				for (var i = 0; i < count; i++) {
+					var password = getRandomInt(111111, 1000000).toString();
+					while (passwords.indexOf(password) > -1) {
+						password = getRandomInt(111111, 1000000).toString();
+					}
+					passwords.push(password);
+					
+					var mnemonic = bip39.generateMnemonic(256);
+					while (mnemonics.indexOf(mnemonic) > -1) {
+						mnemonic = bip39.generateMnemonic(256);
+					}
+					mnemonics.push(mnemonic);
+					
+					result.push({
+						index: i.toString().padStart(3, '0'), 
+						password,
+						mnemonic
+					});
+				}
+				
+				var xml = OBJtoXML({ mnemonics: result });
+				download(xml, 'xml');
+			}
+		}
+	</script>
+</html>
